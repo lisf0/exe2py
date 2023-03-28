@@ -23,17 +23,30 @@ def find_magic(pyc_dir):
         magic = f.read(16)
 
     return magic
-
-# 找到程序中的pyc文件
+	
+#获取文件名
 def find_pyc(pyc_dir):
     for pyc_file in os.listdir(pyc_dir):
-        if not pyc_file.startswith("_") and pyc_file.endswith("manifest"):
+        #print(f"遍历文件:{pyc_file}")
+        if not pyc_file.startswith("pyi-") and not pyc_file.startswith("_") and pyc_file.endswith("manifest"):
             main_file = pyc_file.replace(".exe.manifest", ".pyc")
             result = f"{pyc_dir}/{main_file}"
-            if os.path.exists(result):
-                return main_file
+            print(f"找到文件:{result}")
+            return main_file
 
 
+# 找到程序中的pyc文件
+def find_pyc_path(path,pyc_name):
+    files = os.listdir(path)
+    for file in files:
+        file_path = os.path.join(path, file)
+        print(f"遍历{path}:{file} diff {pyc_name} diff :{file == pyc_name}")
+        if file == pyc_name:
+            return file_path
+        if os.path.isdir(file_path):
+            ret = find_pyc_path(file_path,pyc_name)
+            if ret:
+                return ret
 
 def exe2py(exe_file, complie_child=False):
     # 先执行pyinstxtractor将exe转化为pyc文件
@@ -56,16 +69,19 @@ def exe2py(exe_file, complie_child=False):
     os.mkdir("pycfile_tmp")
 
     main_file = find_pyc(pyc_dir)
-    if not main_file:
-        print("没有找到主程序pyc文件")
+
+    main_path_file = find_pyc_path(pyc_dir,main_file)
+
+    if not main_path_file:
+        print(f"没有找到主程序pyc文件:{main_path_file}")
         sys.exit()
-    print(f"找到主程序pyc文件:{main_file}")
+    print(f"找到主程序pyc文件:{main_path_file}")
     main_file_result = f"pycfile_tmp/{main_file}.pyc"
-    with open(f"{pyc_dir}/{main_file}", "rb") as read, open(main_file_result, "wb") as write:
+    with open(f"{main_path_file}", "rb") as read, open(main_file_result, "wb") as write:
 
         magic_ = read.read(4)
         if magic_ == magic[:4]:
-            print(f"{pyc_dir}/{main_file}已经存在文件头")
+            print(f"{main_path_file}已经存在文件头")
             pass
         else:
             write.write(magic)
